@@ -11,11 +11,11 @@ class Project < ApplicationRecord
   private
 
   def live?
-    [start_date, end_date].all?(&:present?) && DateTime.now.between?(end_date, start_date)
+    [start_date, end_date].all?(&:present?) && Date.today.between?(start_date, end_date)
   end
 
   def future?
-    start_date.present? && DateTime.now < start_date
+    start_date.present? && Date.today < start_date
   end
 
   def ended?

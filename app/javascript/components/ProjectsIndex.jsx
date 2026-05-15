@@ -21,7 +21,7 @@ export default function ProjectsIndex() {
         params: { archived, statuses: selectedStatuses },
       })
       .then((res) => setProjects(res.data));
-  }, [archived]);
+  }, [archived, selectedStatuses]);
 
   function toggleStatus(status) {
     setSelectedStatuses((prev) =>

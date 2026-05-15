@@ -4,7 +4,7 @@ RSpec.describe Project, type: :model do
   describe '#lifecycle_status' do
     it 'returns :live when project is currently live' do
       project = create(:project, :live)
-      expect(project.lifecycle_status).to eq(:not_set)
+      expect(project.lifecycle_status).to eq(:live)
     end
 
     it 'returns :future when project is in the future' do
@@ -26,8 +26,17 @@ RSpec.describe Project, type: :model do
   describe '#live?' do
     it 'returns true if now is between start_date and end_date' do
       project = build(:project, :live)
-      expect(project.send(:live?)).to be false
+      expect(project.send(:live?)).to be true
     end
+
+    it 'returns a live project when both start and end dates fall on todays date' do
+      project = create(:project, :live)
+
+      project.update(start_date: Date.today, end_date: Date.today)
+
+      expect(project.lifecycle_status).to eq(:live)
+    end
+
     it 'returns false otherwise' do
       project = build(:project, :future)
       expect(project.send(:live?)).to be false
