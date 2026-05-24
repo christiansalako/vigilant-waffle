@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { ArrowUp, ArrowDown, ListChevronsUpDown } from "lucide-react"; // responsible for iconography  
 
 const navLinks = [
   { name: "Dashboard", icon: "🏠" },
@@ -14,6 +15,7 @@ export default function ProjectsIndex() {
   const [projects, setProjects] = useState([]);
   const [archived, setArchived] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [sortingDirection, setSortingDirection] = useState(null); // null | "asc" | "desc"
 
   useEffect(() => {
     axios
@@ -30,6 +32,28 @@ export default function ProjectsIndex() {
         : [...prev, status],
     );
   }
+
+  // Cycles, on each click, through ascending, descending and null states
+  function toggleSort() {
+    setSortingDirection((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
+  }
+
+  const sortedProjects = [...projects].sort((a, b) => {
+    // skips sorting unless sortDirection is set to 'asc'/'desc'
+    if (!sortingDirection) return 0;
+
+    // guards against null/empty project names 
+    // returns empty string if so
+    const nameA = a.name ?? "";
+    const nameB = b.name ?? "";
+    return sortingDirection === "asc"
+      ? nameA.localeCompare(nameB)
+      : nameB.localeCompare(nameA);
+  });
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -124,7 +148,10 @@ export default function ProjectsIndex() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider"
                 >
-                  Name
+                  <button onClick={toggleSort} className="flex items-center gap-2" data-testid="sort-name-button">
+                    Name
+                    {sortingDirection === "asc" ? <ArrowUp size={12} /> : sortingDirection === "desc" ? <ArrowDown size={12} /> : <ListChevronsUpDown size={14} />}. 
+                  </button>
                 </th>
                 <th
                   scope="col"
@@ -147,7 +174,7 @@ export default function ProjectsIndex() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {projects.map((project) => (
+              {sortedProjects.map((project) => (
                 <tr key={project.id} className="hover:bg-blue-50 transition">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium flex items-center gap-2">
                     <span className="inline-block w-2 h-2 rounded-full bg-green mr-2"></span>
