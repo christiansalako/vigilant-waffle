@@ -32,7 +32,7 @@ export default function ProjectsIndex() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Re-fetch whenever filters, search or page changes.
+  // Re-fetch whenever filters, search, sort or page changes.
   useEffect(() => {
     axios
       .get("/projects.json", {
@@ -40,6 +40,7 @@ export default function ProjectsIndex() {
           archived,
           statuses: selectedStatuses,
           search: debouncedSearch,
+          sort_order: sortingDirection,
           page,
         },
       })
@@ -47,7 +48,7 @@ export default function ProjectsIndex() {
         setProjects(res.data.projects);
         setTotalPages(res.data.total_pages);
       });
-  }, [archived, selectedStatuses, debouncedSearch, page]);
+  }, [archived, selectedStatuses, debouncedSearch, sortingDirection, page]);
 
   function toggleStatus(status) {
     setPage(1);
@@ -58,27 +59,16 @@ export default function ProjectsIndex() {
     );
   }
 
-  // Cycles, on each click, through ascending, descending and null states
+  // Cycles, on each click, through ascending, descending and null states.
+  // Resets to page 1 so the user isn't stranded mid-list after a sort change.
   function toggleSort() {
+    setPage(1);
     setSortingDirection((prev) => {
       if (prev === null) return "asc";
       if (prev === "asc") return "desc";
       return null;
     });
   }
-
-  const sortedProjects = [...projects].sort((a, b) => {
-    // skips sorting unless sortDirection is set to 'asc'/'desc'
-    if (!sortingDirection) return 0;
-
-    // guards against null/empty project names 
-    // returns empty string if so
-    const nameA = a.name ?? "";
-    const nameB = b.name ?? "";
-    return sortingDirection === "asc"
-      ? nameA.localeCompare(nameB)
-      : nameB.localeCompare(nameA);
-  });
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -211,7 +201,7 @@ export default function ProjectsIndex() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {sortedProjects.map((project) => (
+              {projects.map((project) => (
                 <tr key={project.id} className="hover:bg-blue-50 transition">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium flex items-center gap-2">
                     <span className="inline-block w-2 h-2 rounded-full bg-green mr-2"></span>

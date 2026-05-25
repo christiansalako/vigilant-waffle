@@ -66,6 +66,17 @@ RSpec.describe "GET /projects.json", type: :request do
       ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
       expect(ids).to contain_exactly(ended_project.id)
     end
+
+    it "returns projects matching any of the selected statuses" do
+      live_project   = create(:project, :live)
+      future_project = create(:project, :future)
+      create(:project, :ended)
+
+      get "/projects.json", params: { statuses: ["live", "future"] }
+
+      ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
+      expect(ids).to contain_exactly(live_project.id, future_project.id)
+    end
   end
 
   describe "pagination" do
@@ -100,6 +111,42 @@ RSpec.describe "GET /projects.json", type: :request do
       body = JSON.parse(response.body)
       expect(body["total_pages"]).to eq(2)
       expect(body["projects"].length).to eq(25)
+    end
+  end
+
+  describe "ordering" do
+    it "returns projects in lifecycle status order by default: live, future, ended, not_set" do
+      not_set_project = create(:project, :not_set)
+      ended_project   = create(:project, :ended)
+      future_project  = create(:project, :future)
+      live_project    = create(:project, :live)
+
+      get "/projects.json"
+
+      ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
+      expect(ids).to eq([live_project.id, future_project.id, ended_project.id, not_set_project.id])
+    end
+
+    it "returns projects sorted by name ascending when sort_order=asc" do
+      create(:project, :not_set, name: "Charlie")
+      create(:project, :not_set, name: "Alpha")
+      create(:project, :not_set, name: "Bravo")
+
+      get "/projects.json", params: { sort_order: "asc" }
+
+      names = JSON.parse(response.body)["projects"].map { |project| project["name"] }
+      expect(names).to eq(["Alpha", "Bravo", "Charlie"])
+    end
+
+    it "returns projects sorted by name descending when sort_order=desc" do
+      create(:project, :not_set, name: "Charlie")
+      create(:project, :not_set, name: "Alpha")
+      create(:project, :not_set, name: "Bravo")
+
+      get "/projects.json", params: { sort_order: "desc" }
+
+      names = JSON.parse(response.body)["projects"].map { |project| project["name"] }
+      expect(names).to eq(["Charlie", "Bravo", "Alpha"])
     end
   end
 

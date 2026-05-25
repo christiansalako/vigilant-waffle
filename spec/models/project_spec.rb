@@ -64,4 +64,48 @@ RSpec.describe Project, type: :model do
       expect(project.send(:ended?)).to be false
     end
   end
+
+  describe '.live' do
+    it 'returns only live projects' do
+      live_project = create(:project, :live)
+      create(:project, :future)
+      create(:project, :ended)
+      create(:project, :not_set)
+
+      expect(Project.live).to contain_exactly(live_project)
+    end
+  end
+
+  describe '.future' do
+    it 'returns only future projects' do
+      future_project = create(:project, :future)
+      create(:project, :live)
+      create(:project, :ended)
+      create(:project, :not_set)
+
+      expect(Project.future).to contain_exactly(future_project)
+    end
+  end
+
+  describe '.ended' do
+    it 'returns only ended projects' do
+      ended_project = create(:project, :ended)
+      create(:project, :live)
+      create(:project, :future)
+      create(:project, :not_set)
+
+      expect(Project.ended).to contain_exactly(ended_project)
+    end
+  end
+
+  describe '.not_set' do
+    it 'returns only not_set projects' do
+      not_set_project = create(:project, :not_set)
+      create(:project, :live)
+      create(:project, :future)
+      create(:project, :ended)
+
+      expect(Project.not_set).to contain_exactly(not_set_project)
+    end
+  end
 end 
