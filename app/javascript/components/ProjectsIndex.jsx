@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { ArrowUp, ArrowDown, ListChevronsUpDown } from "lucide-react"; // responsible for iconography  
 
 const navLinks = [
   { name: "Dashboard", icon: "🏠" },
@@ -14,21 +15,59 @@ export default function ProjectsIndex() {
   const [projects, setProjects] = useState([]);
   const [archived, setArchived] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [sortingDirection, setSortingDirection] = useState(null); // null | "asc" | "desc"
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  // Waits 300ms after the user stops typing before updating debouncedSearch
+  // `clearTimeout` cancels the timer if the user types before it fires
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // reset to page 1 whenever the search term changes
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Re-fetch whenever filters, search, sort or page changes.
   useEffect(() => {
     axios
       .get("/projects.json", {
-        params: { archived, statuses: selectedStatuses },
+        params: {
+          archived,
+          statuses: selectedStatuses,
+          search: debouncedSearch,
+          sort_order: sortingDirection,
+          page,
+        },
       })
-      .then((res) => setProjects(res.data));
-  }, [archived]);
+      .then((res) => {
+        setProjects(res.data.projects);
+        setTotalPages(res.data.total_pages);
+      });
+  }, [archived, selectedStatuses, debouncedSearch, sortingDirection, page]);
 
   function toggleStatus(status) {
+    setPage(1);
     setSelectedStatuses((prev) =>
       prev.includes(status)
         ? prev.filter((s) => s !== status)
         : [...prev, status],
     );
+  }
+
+  // Cycles, on each click, through ascending, descending and null states.
+  // Resets to page 1 so the user isn't stranded mid-list after a sort change.
+  function toggleSort() {
+    setPage(1);
+    setSortingDirection((prev) => {
+      if (prev === null) return "asc";
+      if (prev === "asc") return "desc";
+      return null;
+    });
   }
 
   return (
@@ -67,7 +106,7 @@ export default function ProjectsIndex() {
         </nav>
         <div className="mt-8 flex flex-col gap-6">
           <button
-            onClick={() => setArchived((prev) => !prev)}
+            onClick={() => { setArchived((prev) => !prev); setPage(1); }}
             className={`w-full px-3 py-2 rounded-lg font-medium text-sm transition text-left ${
               archived
                 ? "bg-white text-primary font-bold shadow"
@@ -109,6 +148,18 @@ export default function ProjectsIndex() {
         <header>
           <h1 className="text-3xl font-bold mb-8 text-primary">Projects</h1>
         </header>
+
+        {/*** SEARCH INPUT ***/}
+        <div className="w-full max-w-4xl mb-4">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects…"
+            className="w-full px-4 py-2 border border-gray-300 rounded-"
+          />
+        </div>
+
         <section
           className="overflow-x-auto w-full max-w-4xl shadow-xl rounded-lg bg-white border border-gray-200"
           aria-labelledby="projects-table-title"
@@ -124,7 +175,10 @@ export default function ProjectsIndex() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider"
                 >
-                  Name
+                  <button onClick={toggleSort} className="flex items-center gap-2" data-testid="sort-name-button">
+                    Name
+                    {sortingDirection === "asc" ? <ArrowUp size={12} /> : sortingDirection === "desc" ? <ArrowDown size={12} /> : <ListChevronsUpDown size={14} />} 
+                  </button>
                 </th>
                 <th
                   scope="col"
@@ -169,6 +223,27 @@ export default function ProjectsIndex() {
             </tbody>
           </table>
         </section>
+
+        {/*** Pagination ***/}
+        <div className="flex items-center justify-between mt-4 w-full max-w-4xl">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg"
+          >
+            Next
+          </button>
+        </div>
       </main>
     </div>
   );
