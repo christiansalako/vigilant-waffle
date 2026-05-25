@@ -16,16 +16,27 @@ export default function ProjectsIndex() {
   const [archived, setArchived] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [sortingDirection, setSortingDirection] = useState(null); // null | "asc" | "desc"
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Re-fetch whenever filters or page changes.
   useEffect(() => {
     axios
       .get("/projects.json", {
-        params: { archived, statuses: selectedStatuses },
+        params: {
+          archived,
+          statuses: selectedStatuses,
+          page,
+        },
       })
-      .then((res) => setProjects(res.data));
-  }, [archived, selectedStatuses]);
+      .then((res) => {
+        setProjects(res.data.projects);
+        setTotalPages(res.data.total_pages);
+      });
+  }, [archived, selectedStatuses, page]);
 
   function toggleStatus(status) {
+    setPage(1);
     setSelectedStatuses((prev) =>
       prev.includes(status)
         ? prev.filter((s) => s !== status)
@@ -91,7 +102,7 @@ export default function ProjectsIndex() {
         </nav>
         <div className="mt-8 flex flex-col gap-6">
           <button
-            onClick={() => setArchived((prev) => !prev)}
+            onClick={() => { setArchived((prev) => !prev); setPage(1); }}
             className={`w-full px-3 py-2 rounded-lg font-medium text-sm transition text-left ${
               archived
                 ? "bg-white text-primary font-bold shadow"
@@ -150,7 +161,7 @@ export default function ProjectsIndex() {
                 >
                   <button onClick={toggleSort} className="flex items-center gap-2" data-testid="sort-name-button">
                     Name
-                    {sortingDirection === "asc" ? <ArrowUp size={12} /> : sortingDirection === "desc" ? <ArrowDown size={12} /> : <ListChevronsUpDown size={14} />}. 
+                    {sortingDirection === "asc" ? <ArrowUp size={12} /> : sortingDirection === "desc" ? <ArrowDown size={12} /> : <ListChevronsUpDown size={14} />} 
                   </button>
                 </th>
                 <th
@@ -196,6 +207,27 @@ export default function ProjectsIndex() {
             </tbody>
           </table>
         </section>
+
+        {/*** Pagination ***/}
+        <div className="flex items-center justify-between mt-4 w-full max-w-4xl">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 1}
+            className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page === totalPages}
+            className="px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg"
+          >
+            Next
+          </button>
+        </div>
       </main>
     </div>
   );
