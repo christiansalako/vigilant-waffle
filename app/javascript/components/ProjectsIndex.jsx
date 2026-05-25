@@ -18,14 +18,28 @@ export default function ProjectsIndex() {
   const [sortingDirection, setSortingDirection] = useState(null); // null | "asc" | "desc"
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Re-fetch whenever filters or page changes.
+  // Waits 300ms after the user stops typing before updating debouncedSearch
+  // `clearTimeout` cancels the timer if the user types before it fires
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // reset to page 1 whenever the search term changes
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Re-fetch whenever filters, search or page changes.
   useEffect(() => {
     axios
       .get("/projects.json", {
         params: {
           archived,
           statuses: selectedStatuses,
+          search: debouncedSearch,
           page,
         },
       })
@@ -33,7 +47,7 @@ export default function ProjectsIndex() {
         setProjects(res.data.projects);
         setTotalPages(res.data.total_pages);
       });
-  }, [archived, selectedStatuses, page]);
+  }, [archived, selectedStatuses, debouncedSearch, page]);
 
   function toggleStatus(status) {
     setPage(1);
@@ -144,6 +158,18 @@ export default function ProjectsIndex() {
         <header>
           <h1 className="text-3xl font-bold mb-8 text-primary">Projects</h1>
         </header>
+
+        {/*** SEARCH INPUT ***/}
+        <div className="w-full max-w-4xl mb-4">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects…"
+            className="w-full px-4 py-2 border border-gray-300 rounded-"
+          />
+        </div>
+
         <section
           className="overflow-x-auto w-full max-w-4xl shadow-xl rounded-lg bg-white border border-gray-200"
           aria-labelledby="projects-table-title"

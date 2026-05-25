@@ -102,4 +102,35 @@ RSpec.describe "GET /projects.json", type: :request do
       expect(body["projects"].length).to eq(25)
     end
   end
+
+  describe "search function" do
+    it "returns only projects whose name matches the search term" do
+      matched_project     = create(:project, name: "Homer Simpsons' project")
+      unmatched_project   = create(:project, name: "Bart Simpsons' project")
+
+      get "/projects.json", params: { search: "homer" }
+
+      ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
+      expect(ids).to contain_exactly(matched_project.id)
+    end
+
+    it "is case-insensitive" do
+      matched_project = create(:project, name: "Important Project")
+
+      get "/projects.json", params: { search: "IMPORTANT" }
+
+      ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
+      expect(ids).to contain_exactly(matched_project.id)
+    end
+
+    it "returns all projects when search term is blank" do
+      project_one = create(:project, name: "Expensive Project")
+      project_two = create(:project, name: "Even More Expensive Project")
+
+      get "/projects.json", params: { search: "" }
+
+      ids = JSON.parse(response.body)["projects"].map { |project| project["id"] }
+      expect(ids).to contain_exactly(project_one.id, project_two.id)
+    end
+  end
 end

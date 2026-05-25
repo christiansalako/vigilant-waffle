@@ -16,8 +16,13 @@ class ProjectsController < ApplicationController
       format.html
       format.json do
         projects = params[:archived] == "true" ? Project.archived : Project.active
-        statuses = Array(params[:statuses]).map(&:to_s).reject(&:empty?)
         
+        if params[:search].present?
+          projects = projects.where("name ILIKE ?", "%#{params[:search]}%")
+        end
+
+        statuses = Array(params[:statuses]).map(&:to_s).reject(&:empty?)
+
         if statuses.any?
           projects = projects.where("(#{LIFECYCLE_STATUS_SQL}) IN (?)", statuses)
         end
